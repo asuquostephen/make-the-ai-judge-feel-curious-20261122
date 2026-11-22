@@ -36,7 +36,12 @@ def main() -> None:
     out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / "entry.txt"
-    target.write_text(TEXT, encoding="utf-8")
+    # Write atomically: a partial write must never leave a truncated
+    # entry.txt behind, so stage the bytes beside the target and swap
+    # them in with one rename, then verify the delivered copy.
+    staged = target.with_suffix(".tmp")
+    staged.write_text(TEXT, encoding="utf-8")
+    os.replace(staged, target)
 
     check = target.read_text(encoding="utf-8")
     if check != TEXT:
